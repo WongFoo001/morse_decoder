@@ -1,4 +1,6 @@
-module decoder(
+`timescale 1ns / 1ps
+
+module morse_rx(
     input logic clk_100MHz , // Clock
     input logic reset      , // Reset
     input logic user_btn   , // Button Signal from Debouncer
@@ -6,35 +8,32 @@ module decoder(
     // Timer Done Signals
     input logic btn_to     ,
     input logic dash_to    , 
-    input logic intra_to   ,
     input logic inter_to   ,
     input logic word_to    ,
 
     // Timer Reset Signals
     output logic btn_to_res   ,
     output logic dash_to_res  ,
-    output logic intra_to_res , 
     output logic inter_to_res , 
     output logic word_to_res  ,  
 
     // Data Signals
-    output logic [4:0] char_data  ,
+    output logic [5:0] char_data  ,
     output logic       char_valid ,
 );
     
-    typedef enum logic [7:0] {
-        ERROR       = 7'b00000001,
-        IDLE        = 7'b00000010,
-        INIT_TIMERS = 7'b00000100,
-        WAIT_REL    = 7'b00001000,
-        DD_JUDGE    = 7'b00010000,
-        INTRA_CATCH = 7'b00100000,
-        INTER_CATCH = 7'b01000000,
-        WORD_CATCH  = 7'b10000000
+    typedef enum logic [6:0] {
+        ERROR       = 6'b0000001,
+        IDLE        = 6'b0000010,
+        INIT_TIMERS = 6'b0000100,
+        WAIT_REL    = 6'b0001000,
+        DD_JUDGE    = 6'b0010000,
+        INTER_CATCH = 6'b0100000,
+        WORD_CATCH  = 6'b1000000
     } states_t;
 
     // ------ Button Neg Edge Detector ------
-    logic prev_button, button_neg_edge
+    logic prev_button, button_neg_edge;
     always_comb begin
         // Always store prev button
         if (prev_button_q && !user_btn) button_neg_edge = 1'b1;
@@ -42,7 +41,7 @@ module decoder(
         else button_neg_edge = 1'b0;
     end
 
-    always_ff @ (posedge clk) begin
+    always_ff @ (posedge clk_100MHz) begin
         if (reset) prev_button_q <= 1'b0;
 
         else prev_button_q <= user_btn;
@@ -82,16 +81,11 @@ module decoder(
                 else next_state = DD_JUDGE;
             end
 
-            // ------ State = INTRA_CATCH ------
-            INTRA_CATCH: begin
-                if (inter_to) next_state = INTER_CATCH;
-
-                else next_state = INTRA_CATCH;
-            end
-
             // ------ State = INTER_CATCH ------
             INTER_CATCH: begin
                 if (word_to) next_state = WORD_CATCH;
+
+                else if (user_btn) next_state = INIT_TIMERS;
 
                 else next_state = INTER_CATCH;
             end
@@ -99,6 +93,8 @@ module decoder(
             // ------ State = WORD_CATCH ------
             WORD_CATCH: begin
                 if (user_btn) next_state = INIT_TIMERS;
+
+                else if (user_btn) next_state = INIT_TIMERS;
 
                 else next_state = DD_JUDGE;
             end
@@ -109,45 +105,36 @@ module decoder(
     end
 
     // FSM State FFs
-    always_ff @ (posedge clk) begin
+    always_ff @ (posedge clk_100MHz) begin
         if (reset) state <= IDLE;
 
         else state <= next_state;
     end
 
     // Data Signal Declarations
-    logic [4:0] char_data_d, char_data_q. curr_data_ind_d, curr_data_ind_q;
+    logic [4:0] char_data_d, char_data_q, curr_data_ind_d, curr_data_ind_q;
 
           // Timer data
     logic btn_to_res_d   , btn_to_res_q   , 
           dash_to_res_d  , dash_to_res_q  ,
-          intra_to_res_d , intra_to_res_q , 
           inter_to_res_d , inter_to_res_q , 
           word_to_res_d  , word_to_res_q  , 
-
-          // Dot or dash data
-          dot_or_dash_d  , dot_or_dash_q  , // Stores whether received char is dot/dash
           
           // Char valid data
           char_valid_d   , char_valid_q   ;
-      
-    logic 
+
     // FSM Data Logic Block - Completely based on state (Moore)
     always_comb begin
-        case (state)
-            // ------ Default Data Values ------
+        // ------ Default Data Values ------
             btn_to_res_d   = 1'b0;
             dash_to_res_d  = 1'b0;
-            intra_to_res_d = 1'b0;
             inter_to_res_d = 1'b0;
             word_to_res_d  = 1'b0;
 
             char_valid_d    = 1'b0;
             char_data_d     = char_data_q; // Only changes during reset or timer catches
-            curr_data_ind_d = curr_data_ind_q; // Only change during reset or timer catches
-
-            dot_or_dash_d = dot_or_dash_q;
-
+            
+        case (state)
             // ------ State = IDLE ------
             IDLE: begin
                 // No data change during IDLE
@@ -172,31 +159,31 @@ module decoder(
 
                 else char_data_d[curr_data_ind_d] = 1'b0; // Else store dot
 
+                // Increment data index
+                curr_data_ind_d = curr_data_ind_q + 1;
+
                 // Start char catch timers
                 intra_to_res_d = 1'b1;
                 inter_to_res_d = 1'b1;
                 word_to_res_d  = 1'b1;
             end
 
-            // ------ State = INTRA_CATCH ------
-            INTRA_CATCH: begin
-                if (inter_to) next_state = INTER_CATCH;
-
-                else next_state = INTRA_CATCH;
-            end
-
             // ------ State = INTER_CATCH ------
             INTER_CATCH: begin
-                if (word_to) next_state = WORD_CATCH;
+                // New letter incoming - Reset data index
+                curr_data_ind_d = 0;
 
-                else next_state = INTER_CATCH;
+                // Push letter onto data line and assert data valid
+                char_data  = {1'b0, char_data_q};
+                char_valid = 1'b1;
             end
 
             // ------ State = WORD_CATCH ------
             WORD_CATCH: begin
-                if (user_btn) next_state = INIT_TIMERS;
-
-                else next_state = DD_JUDGE;
+                // New Word incoming
+                // Push 'space' onto data line and assert data valid
+                char_data  = {1'b1, 5'b0};
+                char_valid = 1'b1;
             end
 
             // ------ State = ERROR ------
@@ -204,3 +191,41 @@ module decoder(
         endcase
     end
     
+    always_ff @ (posedge clk_100MHz) begin
+        if (reset) begin
+            // Timers
+            btn_to_res_q   <= 1'b0;
+            dash_to_res_q  <= 1'b0;
+            inter_to_res_q <= 1'b0;
+            word_to_res_q  <= 1'b0;
+            
+            // Char data
+            char_valid_q    <= 1'b0;
+            char_data_q     <= 5'b0;
+        end
+        else begin
+            // Timers
+            btn_to_res_q   <= btn_to_res_d;
+            dash_to_res_q  <= dash_to_res_d;
+            inter_to_res_q <= inter_to_res_d;
+            word_to_res_q  <= word_to_res_d;
+            
+            // Char data
+            char_valid_q    <= char_valid_d;
+            char_data_q     <= char_data_d;
+        end
+    end
+    
+    // Assign outputs
+    always_comb begin
+        // Timers
+        btn_to_res   = btn_to_res_q;
+        dash_to_res  = dash_to_res_q;
+        inter_to_res = inter_to_res_q;
+        word_to_res  = word_to_res_q;
+
+        // Char Data
+        char_data  = char_data_q;
+        char_valid = char_valid_q;
+    end
+endmodule 
