@@ -1,4 +1,4 @@
-`timescale 1ns / 1ps
+`timescale 1ms / 1ns
 
 module morse_rx(
     input logic clk_100MHz , // Clock
@@ -19,32 +19,32 @@ module morse_rx(
 
     // Data Signals
     output logic [5:0] char_data  ,
-    output logic       char_valid ,
+    output logic       char_valid 
 );
-    
+        
     typedef enum logic [6:0] {
-        ERROR       = 6'b0000001,
-        IDLE        = 6'b0000010,
-        INIT_TIMERS = 6'b0000100,
-        WAIT_REL    = 6'b0001000,
-        DD_JUDGE    = 6'b0010000,
-        INTER_CATCH = 6'b0100000,
-        WORD_CATCH  = 6'b1000000
+        ERROR       = 7'b0000001,
+        IDLE        = 7'b0000010,
+        INIT_TIMERS = 7'b0000100,
+        WAIT_REL    = 7'b0001000,
+        DD_JUDGE    = 7'b0010000,
+        INTER_CATCH = 7'b0100000,
+        WORD_CATCH  = 7'b1000000
     } states_t;
 
     // ------ Button Neg Edge Detector ------
     logic prev_button, button_neg_edge;
     always_comb begin
         // Always store prev button
-        if (prev_button_q && !user_btn) button_neg_edge = 1'b1;
+        if (prev_button && !user_btn) button_neg_edge = 1'b1;
 
         else button_neg_edge = 1'b0;
     end
 
     always_ff @ (posedge clk_100MHz) begin
-        if (reset) prev_button_q <= 1'b0;
+        if (reset) prev_button <= 1'b0;
 
-        else prev_button_q <= user_btn;
+        else prev_button <= user_btn;
     end
 
     // FSM State Variables
@@ -76,7 +76,7 @@ module morse_rx(
 
             // ------ State = DD_JUDGE ------
             DD_JUDGE: begin
-                if (intra_to) next_state = INTRA_CATCH;
+                if (inter_to) next_state = INTER_CATCH;
 
                 else next_state = DD_JUDGE;
             end
@@ -163,7 +163,6 @@ module morse_rx(
                 curr_data_ind_d = curr_data_ind_q + 1;
 
                 // Start char catch timers
-                intra_to_res_d = 1'b1;
                 inter_to_res_d = 1'b1;
                 word_to_res_d  = 1'b1;
             end
@@ -174,20 +173,17 @@ module morse_rx(
                 curr_data_ind_d = 0;
 
                 // Push letter onto data line and assert data valid
-                char_data  = {1'b0, char_data_q};
-                char_valid = 1'b1;
+                char_data_d  = {1'b0, char_data_q};
+                char_valid_d = 1'b1;
             end
 
             // ------ State = WORD_CATCH ------
             WORD_CATCH: begin
                 // New Word incoming
                 // Push 'space' onto data line and assert data valid
-                char_data  = {1'b1, 5'b0};
-                char_valid = 1'b1;
+                char_data_d  = {1'b1, 5'b0};
+                char_valid_d = 1'b1;
             end
-
-            // ------ State = ERROR ------
-            default: next_state = ERROR; 
         endcase
     end
     
