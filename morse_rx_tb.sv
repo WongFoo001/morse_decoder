@@ -1,4 +1,4 @@
-`timescale 1ms / 1ns
+`timescale 1ns / 1ps
 
 module morse_rx_tb();
 	logic tb_clk_100MHz ; // Clock
@@ -29,9 +29,7 @@ module morse_rx_tb();
 
 	// Clock Driver
     initial begin   
-    	// Initial offset
-    	#2;
-		tb_clk_100MHz = 1'b1;
+    	#2 tb_clk_100MHz = 1'b1;
        	forever begin
             #2 tb_clk_100MHz = ~tb_clk_100MHz; // Period of clk 10 time units
         end
@@ -40,20 +38,20 @@ module morse_rx_tb();
 	// Input Driver
 	initial begin
 		// Initial Input settings
-		tb_reset    = 1'b0;
-		tb_user_btn = 1'b0;
-		tb_btn_to   = 1'b0;
-		tb_dash_to  = 1'b0;
-		tb_inter_to = 1'b0;
-		tb_word_to  = 1'b0;
+		tb_reset    <= 1'b0;
+		tb_user_btn <= 1'b0;
+		tb_btn_to   <= 1'b0;
+		tb_dash_to  <= 1'b0;
+		tb_inter_to <= 1'b0;
+		tb_word_to  <= 1'b0;
 		#5;
 
 		// Reset system
-		tb_reset    = 1'b1;
+		tb_reset    <= 1'b1;
 		#5;
 
 		// Idle system, in IDLE state
-		tb_reset    = 1'b0;
+		tb_reset    <= 1'b0;
 		#5;
 		
 		// Send first button press
@@ -61,39 +59,34 @@ module morse_rx_tb();
 		#5;
 
 		// Let button timeout -> return to idle
-		tb_btn_to   = 1'b1;
-		#5;
+		tb_btn_to   <= 1'b1;
+		#10;
 
-		// Reset System
-		tb_reset    = 1'b1;
+		// Reset timeout and user btn
 		tb_btn_to   = 1'b0;
 		tb_user_btn = 1'b0;
 		#5;
 
-		// Idle system, in IDLE state
-		tb_reset    = 1'b0;
-		#5;
-
 		// Send successful button press this time
-		tb_btn_to   = 1'b1;
+		tb_user_btn   <= 1'b1;
 		#5;
 
 		// Send button release -> dot/dash judge, store a dot = no dash_to
-		tb_btn_to   = 1'b0;
+		tb_user_btn   <= 1'b0;
 		#5;
 
 		// Send third button press 
-		tb_btn_to   = 1'b1;
+		tb_user_btn   <= 1'b1;
 		#5; 
 
 		// Send button release -> dot/dash judge, store a dash = no dash_to
-		tb_dash_to     = 1'b1;
-		tb_btn_to   = 1'b0;
+		tb_dash_to  <= 1'b1;
+		tb_user_btn   <= 1'b0;
 		#5;
 
 		// Store an 'a' -> inter_to 
-		tb_dash_to     = 1'b0;
-		tb_inter_to    = 1'b1; 
+		tb_dash_to     <= 1'b0;
+		tb_inter_to    <= 1'b1; 
 		#10; 
 		
 		$finish(); // End simulation

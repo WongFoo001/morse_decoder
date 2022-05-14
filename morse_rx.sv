@@ -1,4 +1,4 @@
-`timescale 1ms / 1ns
+`timescale 1ns / 1ps
 
 module morse_rx(
     input logic clk_100MHz , // Clock
@@ -155,9 +155,9 @@ module morse_rx(
             // ------ State = DD_JUDGE ------
             DD_JUDGE: begin
                 // Store curr dot or dash
-                if (dash_to) char_data_d[curr_data_ind_d] = 1'b1; // If dash timer exp, store dash
+                if (dash_to) char_data_d[curr_data_ind_q] = 1'b1; // If dash timer exp, store dash
 
-                else char_data_d[curr_data_ind_d] = 1'b0; // Else store dot
+                else char_data_d[curr_data_ind_q] = 1'b0; // Else store dot
 
                 // Increment data index
                 curr_data_ind_d = curr_data_ind_q + 1;
