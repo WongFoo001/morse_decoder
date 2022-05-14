@@ -31,7 +31,20 @@ module morse_rx(
         INTER_CATCH = 7'b0100000,
         WORD_CATCH  = 7'b1000000
     } states_t;
-
+    
+    
+    // Data Signal Declarations
+    logic [4:0] char_data_d, char_data_q;
+    logic [2:0] curr_data_ind_d, curr_data_ind_q; 
+          // Timer data
+    logic btn_to_res_d   , btn_to_res_q   , 
+          dash_to_res_d  , dash_to_res_q  ,
+          inter_to_res_d , inter_to_res_q , 
+          word_to_res_d  , word_to_res_q  , 
+          
+          // Char valid data
+          char_valid_d   , char_valid_q   ;
+    
     // ------ Button Neg Edge Detector ------
     logic prev_button, button_neg_edge;
     always_comb begin
@@ -52,6 +65,9 @@ module morse_rx(
 
     // FSM State Transitions Logic Block
     always_comb begin
+        // Mealy cheating for now
+        curr_data_ind_d = curr_data_ind_q;
+        
         case (state)
             // ------ State = IDLE ------
             IDLE: begin
@@ -76,8 +92,17 @@ module morse_rx(
 
             // ------ State = DD_JUDGE ------
             DD_JUDGE: begin
-                if (inter_to) next_state = INTER_CATCH;
-
+                if (inter_to) begin
+                    next_state = INTER_CATCH;
+                    // New letter incoming - Reset data index
+                    curr_data_ind_d = 3'b0;
+                end 
+                
+                else if (user_btn) begin
+                    next_state = INIT_TIMERS;
+                    curr_data_ind_d = curr_data_ind_q + 1'b1;
+                end 
+                
                 else next_state = DD_JUDGE;
             end
 
@@ -110,19 +135,7 @@ module morse_rx(
 
         else state <= next_state;
     end
-
-    // Data Signal Declarations
-    logic [4:0] char_data_d, char_data_q, curr_data_ind_d, curr_data_ind_q;
-
-          // Timer data
-    logic btn_to_res_d   , btn_to_res_q   , 
-          dash_to_res_d  , dash_to_res_q  ,
-          inter_to_res_d , inter_to_res_q , 
-          word_to_res_d  , word_to_res_q  , 
-          
-          // Char valid data
-          char_valid_d   , char_valid_q   ;
-
+   
     // FSM Data Logic Block - Completely based on state (Moore)
     always_comb begin
         // ------ Default Data Values ------
@@ -133,6 +146,7 @@ module morse_rx(
 
             char_valid_d    = 1'b0;
             char_data_d     = char_data_q; // Only changes during reset or timer catches
+            
             
         case (state)
             // ------ State = IDLE ------
@@ -149,7 +163,9 @@ module morse_rx(
 
             // ------ State = WAIT_REL ------
             WAIT_REL: begin
-                // No data change during WAIT_REL
+                // Start char catch timers
+                inter_to_res_d = 1'b1;
+                word_to_res_d  = 1'b1;
             end
 
             // ------ State = DD_JUDGE ------
@@ -158,20 +174,10 @@ module morse_rx(
                 if (dash_to) char_data_d[curr_data_ind_q] = 1'b1; // If dash timer exp, store dash
 
                 else char_data_d[curr_data_ind_q] = 1'b0; // Else store dot
-
-                // Increment data index
-                curr_data_ind_d = curr_data_ind_q + 1;
-
-                // Start char catch timers
-                inter_to_res_d = 1'b1;
-                word_to_res_d  = 1'b1;
             end
 
             // ------ State = INTER_CATCH ------
             INTER_CATCH: begin
-                // New letter incoming - Reset data index
-                curr_data_ind_d = 0;
-
                 // Push letter onto data line and assert data valid
                 char_data_d  = {1'b0, char_data_q};
                 char_valid_d = 1'b1;
@@ -197,7 +203,8 @@ module morse_rx(
             
             // Char data
             char_valid_q    <= 1'b0;
-            char_data_q     <= 5'b0;
+            char_data_q     <= 5'bXXXXX;
+            curr_data_ind_q <= 3'b0;
         end
         else begin
             // Timers
@@ -209,6 +216,7 @@ module morse_rx(
             // Char data
             char_valid_q    <= char_valid_d;
             char_data_q     <= char_data_d;
+            curr_data_ind_q <= curr_data_ind_d;
         end
     end
     

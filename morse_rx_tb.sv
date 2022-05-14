@@ -29,9 +29,9 @@ module morse_rx_tb();
 
 	// Clock Driver
     initial begin   
-    	#2 tb_clk_100MHz = 1'b1;
+    	#1 tb_clk_100MHz = 1'b1;
        	forever begin
-            #2 tb_clk_100MHz = ~tb_clk_100MHz; // Period of clk 10 time units
+            #1 tb_clk_100MHz = ~tb_clk_100MHz; // Period of clk 10 time units
         end
 	end
 
@@ -54,41 +54,149 @@ module morse_rx_tb();
 		tb_reset    <= 1'b0;
 		#5;
 		
-		// Send first button press
-		tb_user_btn = 1'b1;
-		#5;
-
-		// Let button timeout -> return to idle
-		tb_btn_to   <= 1'b1;
-		#10;
-
-		// Reset timeout and user btn
-		tb_btn_to   = 1'b0;
-		tb_user_btn = 1'b0;
-		#5;
-
-		// Send successful button press this time
-		tb_user_btn   <= 1'b1;
-		#5;
-
-		// Send button release -> dot/dash judge, store a dot = no dash_to
-		tb_user_btn   <= 1'b0;
-		#5;
-
-		// Send third button press 
-		tb_user_btn   <= 1'b1;
-		#5; 
-
-		// Send button release -> dot/dash judge, store a dash = no dash_to
-		tb_dash_to  <= 1'b1;
-		tb_user_btn   <= 1'b0;
-		#5;
-
-		// Store an 'a' -> inter_to 
-		tb_dash_to     <= 1'b0;
-		tb_inter_to    <= 1'b1; 
-		#10; 
+		// -- Send Letter A {dot, dash} --
+            // Send first button press
+            tb_user_btn = 1'b1;
+            #5;
+    
+            // Send button release -> dot/dash judge, store a dot = no dash_to
+            tb_user_btn   <= 1'b0;
+            #5;
+    
+            // Send second button press 
+            tb_user_btn   <= 1'b1;
+            #5;
+            
+            // Dash timeout 
+            tb_dash_to  <= 1'b1;
+            #2
+            
+            // Send button release -> dot/dash judge, store a dash = dash_to
+            tb_user_btn <= 1'b0;
+            #5;
+    
+            // Store an 'a' -> inter_to 
+            tb_dash_to     <= 1'b0;
+            tb_inter_to    <= 1'b1; 
+            #2; 
+            
+            // Reset tb_inter_to
+            tb_inter_to    <= 1'b0; 
+            #5;
+            
+         // -- Send Letter C {dash, dot, dash, dot} --
+            // Send first button press
+            tb_user_btn = 1'b1;
+            #2;
+            
+            // Dash timeout 
+            tb_dash_to  <= 1'b1;
+            #5;
+            
+            // Send button release -> dot/dash judge, store a dash
+            tb_user_btn   <= 1'b0;
+            #5;
+            
+            // Dash timeout reset
+            tb_dash_to  <= 1'b0;
+            #5;
+            
+            // Send second button press 
+            tb_user_btn   <= 1'b1;
+            #5;
+            
+            // Send button release -> dot/dash judge, store a dot
+            tb_user_btn <= 1'b0;
+            #5;
+            
+            // Send third button press
+            tb_user_btn = 1'b1;
+            #2;
+            
+            // Dash timeout 
+            tb_dash_to  <= 1'b1;
+            #5;
+            
+            // Send button release -> dot/dash judge, store a dash
+            tb_user_btn   <= 1'b0;
+            #5;
+            
+            // Dash timeout reset
+            tb_dash_to  <= 1'b0;
+            #5;
+            
+            // Send second button press 
+            tb_user_btn   <= 1'b1;
+            #5;
+            
+            // Send button release -> dot/dash judge, store a dot
+            tb_user_btn <= 1'b0;
+            #5;
+    
+            // Store an 'c' -> inter_to 
+            tb_dash_to     <= 1'b0;
+            tb_inter_to    <= 1'b1; 
+            #2; 
+            
+            // Reset tb_inter_to
+            tb_inter_to    <= 1'b0; 
+            #5;
+            
+        // -- Send Letter K {dash, dot, dash} --
+            // Send first button press
+            tb_user_btn = 1'b1;
+            #2;
+            
+            // Dash timeout 
+            tb_dash_to  <= 1'b1;
+            #5;
+            
+            // Send button release -> dot/dash judge, store a dash
+            tb_user_btn   <= 1'b0;
+            #2;
+            
+            // Dash timeout reset
+            tb_dash_to  <= 1'b0;
+            #5;
+            
+            // Send second button press 
+            tb_user_btn   <= 1'b1;
+            #5;
+            
+            // Send button release -> dot/dash judge, store a dot
+            tb_user_btn <= 1'b0;
+            #5;
+            
+            // Send third button press
+            tb_user_btn = 1'b1;
+            #2;
+            
+            // Dash timeout 
+            tb_dash_to  <= 1'b1;
+            #5;
+            
+            // Send button release -> dot/dash judge, store a dash
+            tb_user_btn   <= 1'b0;
+            #2;
+            
+            // Dash timeout reset
+            tb_dash_to  <= 1'b0;
+            #5;
+    
+            // Store an 'k' -> inter_to 
+            tb_inter_to    <= 1'b1; 
+            #2; 
+            
+            // Reset tb_inter_to
+            tb_inter_to    <= 1'b0; 
+            #5;
+            
+		// -- Send Space completing "ack" word --
+		tb_word_to <= 1'b1;
+		#2;
 		
+		tb_word_to <= 1'b0;
+		#2;
 		$finish(); // End simulation
 	end 
 endmodule
