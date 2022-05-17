@@ -166,6 +166,8 @@ module morse_rx(
                 // Start char catch timers
                 inter_to_res_d = 1'b1;
                 word_to_res_d  = 1'b1;
+
+                // 
             end
 
             // ------ State = DD_JUDGE ------
