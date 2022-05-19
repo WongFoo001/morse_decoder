@@ -6,19 +6,19 @@
 
 	Default 50ms countdown
 */
-module debouncer #(parameter TICK_COUNT = 5000000)(
-	input logic clk_100Mhz,
-	input logic reset,
-	input logic btn_in, 
+module debouncer #( parameter TICK_COUNT = 5000000 )(
+	input logic clk_100Mhz ,
+	input logic reset      ,
+	input logic btn_in     , 
 
 	output logic btn_press
 );
 	// Data signal declarations
 	localparam WIDTH = $clog2(TICK_COUNT+1); // Synthesizable given tick_count is constant, defined pre_compile
-	logic [WIDTH-1 : 0] time_count_d, time_count_q;
-
-	logic btn_press_d, btn_press_q;
-
+	
+	logic [WIDTH-1 : 0] time_count_d, time_count_q ;
+	logic                btn_press_d, btn_press_q  ;
+ 
 	always_comb begin
 		// Default do not count statement
 		time_count_d = time_count_q;
@@ -27,18 +27,14 @@ module debouncer #(parameter TICK_COUNT = 5000000)(
 		// If full count, check if btn still being held -> actual button press
 		if (time_count_q == TICK_COUNT) begin
 			time_count_d = time_count_q; // Hold counter
-			if (btn_in) begin
-				btn_press_d = 1'b1;
-			end
-			else begin // If button not being held, reset counter
-				time_count_d = 0;
-			end
+			
+			if (btn_in) btn_press_d = 1'b1;
+			
+			else time_count_d = 0;
 		end
 
 		// Increment time counter	
-		else begin
-			time_count_d = time_count_q + 1'b1;
-		end
+		else time_count_d = time_count_q + 1'b1;
 	end
 
 	always_ff @ (posedge clk_100Mhz) begin

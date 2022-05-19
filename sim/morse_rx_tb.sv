@@ -12,20 +12,21 @@ module morse_rx_tb();
     logic tb_word_to    ;
 
     // Timer Reset Signals
-    logic tb_btn_to_res   ;
-    logic tb_dash_to_res  ;
-    logic tb_inter_to_res ; 
-    logic tb_word_to_res  ;  
+    logic tb_btn_t_res   ;
+    logic tb_dash_t_res  ;
+    logic tb_inter_t_res ; 
+    logic tb_word_t_res  ;  
 
     // Data Signals
     logic [5:0] tb_char_data  ;
+    logic [2:0] tb_char_index ; 
     logic       tb_char_valid ;
 
 
 	// Instance of DUT - morse_rx
 	morse_rx rx(.clk_100MHz(tb_clk_100MHz), .reset(tb_reset), .user_btn(tb_user_btn), .btn_to(tb_btn_to), 
-				.dash_to(tb_dash_to), .inter_to(tb_inter_to), .word_to(tb_word_to), .btn_to_res(tb_btn_to_res), .dash_to_res(tb_dash_to_res), 
-				.inter_to_res(tb_inter_to_res), .word_to_res(tb_word_to_res), .char_data(tb_char_data), .char_valid(tb_char_valid));
+				.dash_to(tb_dash_to), .inter_to(tb_inter_to), .word_to(tb_word_to), .btn_t_res(tb_btn_t_res), .dash_t_res(tb_dash_t_res), 
+				.inter_t_res(tb_inter_t_res), .word_t_res(tb_word_t_res), .char_data(tb_char_data), .char_index(tb_char_index), .char_valid(tb_char_valid));
 
 	// Clock Driver
     initial begin   
@@ -153,7 +154,7 @@ module morse_rx_tb();
             
             // Send button release -> dot/dash judge, store a dash
             tb_user_btn   <= 1'b0;
-            #2;
+            #4;
             
             // Dash timeout reset
             tb_dash_to  <= 1'b0;
@@ -177,7 +178,7 @@ module morse_rx_tb();
             
             // Send button release -> dot/dash judge, store a dash
             tb_user_btn   <= 1'b0;
-            #2;
+            #4;
             
             // Dash timeout reset
             tb_dash_to  <= 1'b0;
@@ -196,7 +197,7 @@ module morse_rx_tb();
 		#2;
 		
 		tb_word_to <= 1'b0;
-		#2;
+		#20;
 		$finish(); // End simulation
 	end 
 endmodule

@@ -12,226 +12,229 @@ module morse_rx(
     input logic word_to    ,
 
     // Timer Reset Signals
-    output logic btn_to_res   ,
-    output logic dash_to_res  ,
-    output logic inter_to_res , 
-    output logic word_to_res  ,  
+    output logic btn_t_res   ,
+    output logic dash_t_res  ,
+    output logic inter_t_res , 
+    output logic word_t_res  ,  
 
     // Data Signals
     output logic [5:0] char_data  ,
+    output logic [2:0] char_index , 
     output logic       char_valid 
 );
         
-    typedef enum logic [6:0] {
-        ERROR       = 7'b0000001,
-        IDLE        = 7'b0000010,
-        INIT_TIMERS = 7'b0000100,
-        WAIT_REL    = 7'b0001000,
-        DD_JUDGE    = 7'b0010000,
-        INTER_CATCH = 7'b0100000,
-        WORD_CATCH  = 7'b1000000
+    typedef enum logic [3:0] {
+        ERROR         = 4'b0000 ,
+        IDLE          = 4'b0001 ,
+        TIMERS_1_INIT = 4'b0010 ,
+        REL_CATCH     = 4'b0011 ,
+        TIMERS_2_INIT = 4'b0100 ,
+        DD_CATCH      = 4'b0101 ,
+        CHAR_POST     = 4'b0110 ,
+        CHAR_CATCH    = 4'b0111 ,
+        WORD_POST     = 4'b1000 ,
+        WORD_CATCH    = 4'b1001 ,
+        CLEANUP       = 4'b1010 
     } states_t;
-    
-    
-    // Data Signal Declarations
-    logic [4:0] char_data_d, char_data_q;
-    logic [2:0] curr_data_ind_d, curr_data_ind_q; 
-          // Timer data
-    logic btn_to_res_d   , btn_to_res_q   , 
-          dash_to_res_d  , dash_to_res_q  ,
-          inter_to_res_d , inter_to_res_q , 
-          word_to_res_d  , word_to_res_q  , 
-          
-          // Char valid data
-          char_valid_d   , char_valid_q   ;
-    
-    // ------ Button Neg Edge Detector ------
-    logic prev_button, button_neg_edge;
-    always_comb begin
-        // Always store prev button
-        if (prev_button && !user_btn) button_neg_edge = 1'b1;
 
-        else button_neg_edge = 1'b0;
-    end
+    // Internal Signal Declarations
+    states_t next_state, curr_state ; // FSM state
 
-    always_ff @ (posedge clk_100MHz) begin
-        if (reset) prev_button <= 1'b0;
+    logic [5:0] int_char_data_d, int_char_data_q ; // Internal dot/dash buffer
+    logic [2:0] int_char_ind_d , int_char_ind_q  ; // Internal buffer index
 
-        else prev_button <= user_btn;
-    end
-
-    // FSM State Variables
-    states_t state, next_state; 
+    logic char_valid_d   , char_valid_q   , // Internal char valid control signal
+          cleanup_flag_d , cleanup_flag_q , // Internal control to reset dot/dash buffer and index
+          btn_t_res_d    , btn_t_res_q    , // Internal btn timer reset
+          dash_t_res_d   , dash_t_res_q   , // Internal dash timer reset
+          inter_t_res_d  , inter_t_res_q  , // Internal interchar timer reset
+          word_t_res_d   , word_t_res_q   ; // Internal word timer reset
 
     // FSM State Transitions Logic Block
     always_comb begin
-        // Mealy cheating for now
-        curr_data_ind_d = curr_data_ind_q;
-        
-        case (state)
-            // ------ State = IDLE ------
+        // Default state transition
+        next_state = curr_state;
+
+        case (curr_state) 
+            ERROR: begin // Should never get here!
+            end
+
             IDLE: begin
-                if (user_btn) next_state = INIT_TIMERS; // Only transitioning on a button press
-                
-                else next_state = IDLE;
-            end
+                if (user_btn) next_state = TIMERS_1_INIT;
+            end // IDLE:
 
-            // ------ State = INIT_TIMERS ------
-            INIT_TIMERS: begin
-                next_state = WAIT_REL;
-            end
+            TIMERS_1_INIT: begin
+                next_state = REL_CATCH;
+            end // TIMERS_1_INIT:
 
-            // ------ State = WAIT_REL ------
-            WAIT_REL: begin
-                if (button_neg_edge) next_state = DD_JUDGE;
+            REL_CATCH: begin
+                if (btn_to) next_state = IDLE;
 
-                else if (btn_to) next_state = IDLE;
+                else if (!user_btn) next_state = TIMERS_2_INIT;
+            end // REL_CATCH:
 
-                else next_state = WAIT_REL;
-            end
+            TIMERS_2_INIT: begin
+                next_state = DD_CATCH;
+            end // TIMERS_2_INIT:
 
-            // ------ State = DD_JUDGE ------
-            DD_JUDGE: begin
-                if (inter_to) begin
-                    next_state = INTER_CATCH;
-                    // New letter incoming - Reset data index
-                    curr_data_ind_d = 3'b0;
-                end 
-                
-                else if (user_btn) begin
-                    next_state = INIT_TIMERS;
-                    curr_data_ind_d = curr_data_ind_q + 1'b1;
-                end 
-                
-                else next_state = DD_JUDGE;
-            end
+            DD_CATCH: begin
+                if (user_btn) next_state = CLEANUP;
 
-            // ------ State = INTER_CATCH ------
-            INTER_CATCH: begin
-                if (word_to) next_state = WORD_CATCH;
+                else if (inter_to) next_state = CHAR_POST;
+            end // DD_CATCH: 
 
-                else if (user_btn) next_state = INIT_TIMERS;
+            CHAR_POST: begin
+                next_state = CHAR_CATCH;
+            end // CHAR_POST:
 
-                else next_state = INTER_CATCH;
-            end
+            CHAR_CATCH: begin
+                if (user_btn) next_state = CLEANUP;
 
-            // ------ State = WORD_CATCH ------
+                else if (word_to) next_state = WORD_POST;
+            end // CHAR_CATCH:
+
+            WORD_POST: begin
+                next_state = WORD_CATCH;
+            end // WORD_POST:
+
             WORD_CATCH: begin
-                if (user_btn) next_state = INIT_TIMERS;
+                if (user_btn) next_state = CLEANUP;
+            end // WORD_CATCH:
 
-                else if (user_btn) next_state = INIT_TIMERS;
+            CLEANUP: begin
+                next_state = TIMERS_1_INIT;
+            end // CLEANUP:
 
-                else next_state = DD_JUDGE;
+            default: begin // Should never get here either!
             end
-
-            // ------ State = ERROR ------
-            default: next_state = ERROR; 
         endcase
     end
 
     // FSM State FFs
     always_ff @ (posedge clk_100MHz) begin
-        if (reset) state <= IDLE;
+        if (reset) curr_state <= IDLE; // Reset State
 
-        else state <= next_state;
+        else curr_state <= next_state; // Transition to next state
     end
    
-    // FSM Data Logic Block - Completely based on state (Moore)
+    // Data Logic Block 
     always_comb begin
-        // ------ Default Data Values ------
-            btn_to_res_d   = 1'b0;
-            dash_to_res_d  = 1'b0;
-            inter_to_res_d = 1'b0;
-            word_to_res_d  = 1'b0;
+        // Default data assignments
+        int_char_data_d = int_char_data_q ;
+        int_char_ind_d  = int_char_ind_q  ;
+        char_valid_d    = 1'b0            ;
+        cleanup_flag_d  = 1'b0            ;
 
-            char_valid_d    = 1'b0;
-            char_data_d     = char_data_q; // Only changes during reset or timer catches
-            
-            
-        case (state)
-            // ------ State = IDLE ------
+        btn_t_res_d   = 1'b0;
+        dash_t_res_d  = 1'b0;
+        inter_t_res_d = 1'b0;
+        word_t_res_d  = 1'b0;
+
+        case (curr_state)
+            ERROR: begin // Should never get here!
+            end
+
             IDLE: begin
-                // No data change during IDLE
-            end
+            end // IDLE:
 
-            // ------ State = INIT_TIMERS ------
-            INIT_TIMERS: begin
-                // Start button timeout timer and dash timer
-                btn_to_res_d  = 1'b1;
-                dash_to_res_d = 1'b1;
-            end
+            TIMERS_1_INIT: begin
+                // Assert btn timer and dash timer resets
+                btn_t_res_d  = 1'b1;
+                dash_t_res_d = 1'b1;
+            end // TIMERS_1_INIT:
 
-            // ------ State = WAIT_REL ------
-            WAIT_REL: begin
-                // Start char catch timers
-                inter_to_res_d = 1'b1;
-                word_to_res_d  = 1'b1;
+            REL_CATCH: begin
+            end // REL_CATCH:
 
-                // 
-            end
+            TIMERS_2_INIT: begin
+                // Assert btn inter char timer and word timer resets
+                inter_t_res_d = 1'b1;
+                word_t_res_d  = 1'b1;
 
-            // ------ State = DD_JUDGE ------
-            DD_JUDGE: begin
-                // Store curr dot or dash
-                if (dash_to) char_data_d[curr_data_ind_q] = 1'b1; // If dash timer exp, store dash
+                // Insert new dash/dot into char buffer at current index
+                if (dash_to) int_char_data_d[int_char_ind_q] = 1'b1; // 1 for dash
 
-                else char_data_d[curr_data_ind_q] = 1'b0; // Else store dot
-            end
+                else int_char_data_d[int_char_ind_q] = 1'b0; // 0 for dot
+            end // TIMERS_2_INIT:
 
-            // ------ State = INTER_CATCH ------
-            INTER_CATCH: begin
-                // Push letter onto data line and assert data valid
-                char_data_d  = {1'b0, char_data_q};
+            DD_CATCH: begin
+                // Assert cleanup flag
+                cleanup_flag_d = 1'b1;
+            end // DD_CATCH: 
+
+            CHAR_POST: begin
+                // Assert char valid
                 char_valid_d = 1'b1;
-            end
+            end // CHAR_POST:
 
-            // ------ State = WORD_CATCH ------
+            CHAR_CATCH: begin
+            end // CHAR_CATCH:
+
+            WORD_POST: begin
+                // Post space to char data line
+                int_char_data_d = {1'b1, 5'b00000};
+                int_char_ind_d  = {3'b101}; // Index of 5 -> Signals space
+
+                // Assert char valid 
+                char_valid_d = 1'b1;
+            end // WORD_POST:
+
             WORD_CATCH: begin
-                // New Word incoming
-                // Push 'space' onto data line and assert data valid
-                char_data_d  = {1'b1, 5'b0};
-                char_valid_d = 1'b1;
+
+            end // WORD_CATCH:
+
+            CLEANUP: begin
+                // If cleanup flag asserted, reset internal char buffer and index
+                if (!cleanup_flag_q) begin
+                    int_char_data_d = 6'b000000;
+                    int_char_ind_d  = 3'b0;
+                end
+
+                // If not asserted, simply increment index
+                else int_char_ind_d  = int_char_ind_q + 1'b1;
+            end // CLEANUP:
+
+            default: begin // Should never get here either!
             end
         endcase
     end
     
+    // Data Logic FFs
     always_ff @ (posedge clk_100MHz) begin
         if (reset) begin
-            // Timers
-            btn_to_res_q   <= 1'b0;
-            dash_to_res_q  <= 1'b0;
-            inter_to_res_q <= 1'b0;
-            word_to_res_q  <= 1'b0;
-            
-            // Char data
-            char_valid_q    <= 1'b0;
-            char_data_q     <= 5'bXXXXX;
-            curr_data_ind_q <= 3'b0;
-        end
+            int_char_data_q <= 6'b000000 ;
+            int_char_ind_q  <= 3'b0      ;
+            char_valid_q    <= 1'b0      ;
+            cleanup_flag_q  <= 1'b0      ;
+
+            btn_t_res_q   <= 1'b0 ;
+            dash_t_res_q  <= 1'b0 ;
+            inter_t_res_q <= 1'b0 ;
+            word_t_res_q  <= 1'b0 ;
+        end 
+
         else begin
-            // Timers
-            btn_to_res_q   <= btn_to_res_d;
-            dash_to_res_q  <= dash_to_res_d;
-            inter_to_res_q <= inter_to_res_d;
-            word_to_res_q  <= word_to_res_d;
-            
-            // Char data
-            char_valid_q    <= char_valid_d;
-            char_data_q     <= char_data_d;
-            curr_data_ind_q <= curr_data_ind_d;
+            int_char_data_q <= int_char_data_d ;
+            int_char_ind_q  <= int_char_ind_d  ;
+            char_valid_q    <= char_valid_d    ;
+            cleanup_flag_q  <= cleanup_flag_d  ;
+
+            btn_t_res_q   <= btn_t_res_d   ;
+            dash_t_res_q  <= dash_t_res_d  ;
+            inter_t_res_q <= inter_t_res_d ;
+            word_t_res_q  <= word_t_res_d  ;
         end
     end
     
-    // Assign outputs
+    // Output assignment block
     always_comb begin
-        // Timers
-        btn_to_res   = btn_to_res_q;
-        dash_to_res  = dash_to_res_q;
-        inter_to_res = inter_to_res_q;
-        word_to_res  = word_to_res_q;
+        char_data  = int_char_data_q ;
+        char_index = int_char_ind_q  ;
+        char_valid = char_valid_q    ;
 
-        // Char Data
-        char_data  = char_data_q;
-        char_valid = char_valid_q;
+        btn_t_res   = btn_t_res_q   ;
+        dash_t_res  = dash_t_res_q  ;
+        inter_t_res = inter_t_res_q ;
+        word_t_res  = word_t_res_q  ; 
     end
 endmodule 
