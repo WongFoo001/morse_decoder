@@ -6,10 +6,10 @@ module morse_rx(
     input logic user_btn   , // Button Signal from Debouncer
 
     // Timer Done Signals
-    input logic btn_to     ,
-    input logic dash_to    , 
-    input logic inter_to   ,
-    input logic word_to    ,
+    input logic btn_to   ,
+    input logic dash_to  , 
+    input logic inter_to ,
+    input logic word_to  ,
 
     // Timer Reset Signals
     output logic btn_t_res   ,
