@@ -29,6 +29,6 @@ module an_ring_counter (
     
     // Assign output
     always_comb begin
-       an_sel = an_sel_q;
+       an_sel = ~an_sel_q; // Invert to account for active low
     end
 endmodule 

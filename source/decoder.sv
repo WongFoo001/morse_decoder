@@ -8,7 +8,7 @@ module decoder(
     input logic       char_index ,
     input logic [5:0]  char_data , // Char data from receiver
 
-    output logic [55:0]       seg // {seg7[7:0], seg6[7:0], seg5[7:0], seg4[7:0], seg3[7:0], seg2[7:0], seg1[7:0], seg0[7:0]}
+    output logic [63:0]       seg // {seg7[7:0], seg6[7:0], seg5[7:0], seg4[7:0], seg3[7:0], seg2[7:0], seg1[7:0], seg0[7:0]}
     );
     
     // NOTE: Segments are active low signals!

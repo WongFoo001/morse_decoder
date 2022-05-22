@@ -17,7 +17,7 @@ module clk_div_10Mhz (
         count_d     = count_q + 1'b1 ;
         clk_10Mhz_d = 1'b0           ;
 
-        if (count_q[7] == 4'b1010) begin // If at 10, pulse clock and reset count
+        if (count_q == 4'b1010) begin // If at 10, pulse clock and reset count
             clk_10Mhz_d = 1'b1    ;
             count_d     = 4'b0000 ;
         end
