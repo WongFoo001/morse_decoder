@@ -5,18 +5,18 @@ module decoder(
     input logic reset      , // Reset
 
     input logic       data_valid , // Data valid, clock in new data
-    input logic       char_index ,
+    input logic [2:0] char_index ,
     input logic [5:0]  char_data , // Char data from receiver
 
-    output logic [63:0]       seg // {seg7[7:0], seg6[7:0], seg5[7:0], seg4[7:0], seg3[7:0], seg2[7:0], seg1[7:0], seg0[7:0]}
+    output logic [55:0]       seg // {seg7[7:0], seg6[7:0], seg5[7:0], seg4[7:0], seg3[7:0], seg2[7:0], seg1[7:0], seg0[7:0]}
     );
     
     // NOTE: Segments are active low signals!
     // Seg Order: 7b'0 0 0 0 0 0 0 
-    //               A B C D E F G
+    //               G F E D C B A
 
     // Internal Data Declarations
-    logic [7:0] seg7_d , seg7_q ,
+    logic [6:0] seg7_d , seg7_q ,
                 seg6_d , seg6_q ,
                 seg5_d , seg5_q ,
                 seg4_d , seg4_q ,
@@ -35,9 +35,9 @@ module decoder(
             // Switch first on index value
             case (char_index)
                 3'b000: begin
-                    if (char_data[0]) seg0_d = 7'b1110000; // T
+                    if (char_data[0]) seg0_d = 7'b0000111; // T
 
-                    else seg0_d = 7'b0110000; // E
+                    else seg0_d = 7'b0000110; // E
                 end // 3'b000:
 
                 3'b001: begin
@@ -46,9 +46,9 @@ module decoder(
 
                         2'b01: seg0_d = 7'b0001000; // A
 
-                        2'b10: seg0_d = 7'b0001001; // N
+                        2'b10: seg0_d = 7'b1101010; // N
 
-                        2'b11: seg0_d = 7'b0101010; // M
+                        2'b11: seg0_d = 7'b0010101; // M
                     endcase
                 end // 3'b000:
 
