@@ -1,13 +1,13 @@
 `timescale 1ns / 1ps
 
 module disp_cntrl(
-	input        clk_10Mhz ,
-	input        reset     ,
-	input [63:0] seg_data  ,
-	input [7:0]  an_sel    ,
+	input logic        clk_10Mhz ,
+	input logic        reset     ,
+	input logic [63:0] seg_data  ,
+	input logic [7:0]  an_sel    ,
 
-	output [7:0] seg ,
-	output [7:0] an 
+	output logic [7:0] seg ,
+	output logic [7:0] an 
 );
 	
 	// Internal data declarations
@@ -15,7 +15,7 @@ module disp_cntrl(
 
 	// Data Logic
 	always_comb begin
-		case(an_sel) begin
+		case(an_sel) 
 			8'b11111110: seg_d = seg_data[7:0]; 
 
 			8'b11111101: seg_d = seg_data[15:8]; 
@@ -33,11 +33,11 @@ module disp_cntrl(
 			8'b01111111: seg_d = seg_data[63:56];
 
 			default: seg_d = 8'b11111111; // shouldn't execute
-		end
+		endcase
 	end
 
 	// Data FFs
-	always_ff @ (posedge clk_100Mhz) begin
+	always_ff @ (posedge clk_10Mhz) begin
 		if (reset) seg_q <= 8'b11111111;
 
 		else seg_q <= seg_d;
@@ -48,3 +48,4 @@ module disp_cntrl(
 		seg = seg_q  ;
 		an  = an_sel ;
 	end
+endmodule
