@@ -62,9 +62,7 @@ module decoder_tb();
 
             6'b000111: tb_char_index <= tb_char_index + 1;
 
-            6'b001111: tb_char_index <= tb_char_index + 1;
-
-            6'b011111: $finish();
+            6'b001111: $finish();
         endcase
         tb_char_data <= tb_char_data + 1;
     end
