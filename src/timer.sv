@@ -9,6 +9,7 @@ timer.sv:
 module timer #(parameter TICK_COUNT) (
   input logic clk,
   input logic resetn,
+  input logic set_i,
 
   output logic expired_o
 );
@@ -16,16 +17,22 @@ module timer #(parameter TICK_COUNT) (
 
   always_ff @ (posedge clk) begin
     if (!resetn) begin
-      count_r <= TICK_COUNT;
+      count_r <= 0;
     end
 
     else begin
-      if (count_r > 0) begin
-        count_r <= count_r - 1;
+      if (set_i == 1) begin
+        count_r <= TICK_COUNT;
       end
 
       else begin
-        count_r <= count_r;
+        if (count_r > 0) begin
+          count_r <= count_r - 1;
+        end
+
+        else begin
+          count_r <= count_r;
+        end
       end
     end
   end

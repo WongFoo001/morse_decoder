@@ -4,7 +4,7 @@ module cdc_tb();
   parameter DATA_WIDTH = 4;
   parameter SYNC_DELAY_CLKS = 3;
 
-  logic clk, resetn;
+  logic resetn;
   logic [DATA_WIDTH-1:0] async_signal, sync_signal;
 
   cdc #(.DATA_WIDTH(DATA_WIDTH)) sync (
@@ -14,7 +14,9 @@ module cdc_tb();
     .sync_sig_o(sync_signal)
   );
 
-  // monitor timers
+  /*
+  * testbench stimulus
+  */
   initial begin
     // initialize button state
     async_signal = 0;

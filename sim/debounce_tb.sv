@@ -1,7 +1,7 @@
 module debounce_tb();
   `include "stim_utilities.svh"
 
-  logic clk, resetn;
+  logic resetn;
   logic btn_i, btn_o;
   // Not usable with xsim T.T
   event btn_toggle;
@@ -13,7 +13,37 @@ module debounce_tb();
     .db_btn_o(btn_o)
   );
 
-  // monitor timers
+  task generate_bounces();
+    // random number of bouncing oscillations
+    automatic int unsigned num_bounces;
+    assert (
+      std::randomize(num_bounces) with {
+        num_bounces > 10;
+        num_bounces < 15;
+      }
+    );
+
+    for (int i = 0; i < num_bounces; i++) begin
+      btn_i = ~btn_i;
+      wait_num_clks(100 - (7 * i));
+    end
+  endtask
+
+  task press_btn();
+    generate_bounces();
+    btn_i = 1;
+    wait_num_clks(1);
+  endtask
+
+  task release_btn();
+    generate_bounces();
+    btn_i = 0;
+    wait_num_clks(1);
+  endtask
+
+  /*
+  * testbench stimulus
+  */
   initial begin
     // initialize button state
     btn_i = 0;
@@ -43,32 +73,4 @@ module debounce_tb();
 
     $finish();
   end
-
-  task generate_bounces();
-    // random number of bouncing oscillations
-    automatic int unsigned num_bounces;
-    assert (
-      std::randomize(num_bounces) with {
-        num_bounces > 10;
-        num_bounces < 15;
-      }
-    );
-
-    for (int i = 0; i < num_bounces; i++) begin
-      btn_i = ~btn_i;
-      wait_num_clks(100 - (7 * i));
-    end
-  endtask
-
-  task press_btn();
-    generate_bounces();
-    btn_i = 1;
-    wait_num_clks(1);
-  endtask
-
-  task release_btn();
-    generate_bounces();
-    btn_i = 0;
-    wait_num_clks(1);
-  endtask
 endmodule

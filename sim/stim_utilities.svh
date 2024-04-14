@@ -1,4 +1,5 @@
 // generate clock
+logic clk;
 clk_gen gen(
   .clk_o(clk)
 );
