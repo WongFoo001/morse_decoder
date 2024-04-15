@@ -70,4 +70,8 @@ package morse_decoder_pkg;
 	// special parameter that instructs decoder to insert
 	// a space.
 	parameter MORSE_SPACE_C = 5'b11111;
+
+	// signal connection width parameters
+	parameter MORSE_CHAR_WIDTH_MAX_C = 5;
+	parameter MORSE_SIZE_WIDTH_MAX_C = 3;
 endpackage
