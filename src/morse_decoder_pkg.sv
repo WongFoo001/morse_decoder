@@ -67,4 +67,7 @@ package morse_decoder_pkg;
 	parameter MORSE_7_C = 5'b11000;
 	parameter MORSE_8_C = 5'b11100;
 	parameter MORSE_9_C = 5'b11110;
+	// special parameter that instructs decoder to insert
+	// a space.
+	parameter MORSE_SPACE_C = 5'b11111;
 endpackage
