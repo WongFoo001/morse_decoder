@@ -3,8 +3,8 @@
 /*
 symbol_rx.sv:
 
-  This module translates button presses into dots and dashes. It buffers dots and dashes
-  into symbol-bytes to be decoded. Note that all letters and numbers (0-9) can be represented
+  This module translates button presses/releases into dots and dashes. It buffers dots and dashes
+  into characters to be decoded. Note that all letters and numbers (0-9) can be represented
   with only 5 bits. Hence symbol buffer is only 5 symbols long. A string of dots/dashes longer
   that 5 bits will be thrown away.
 */
@@ -73,7 +73,6 @@ module symbol_rx (
   /*
     symbol rx FSM logic
   */
-
   always_ff @ (posedge clk) begin
     if (!resetn) begin
       fsm_r         <= IDLE;
@@ -203,7 +202,7 @@ module symbol_rx (
             // send special space character out
             tvalid_o <= 1;
             tdata_o <= MORSE_SPACE_C;
-            tsize_o <= MORSE_SIZE_WIDTH_MAX_C;
+            tsize_o <= MORSE_CHAR_WIDTH_MAX_C;
           end
 
           // another button press

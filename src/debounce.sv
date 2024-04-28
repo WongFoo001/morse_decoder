@@ -46,11 +46,6 @@ module debounce (
       else if (synced_raw_btn_r == db_btn_r && count_en_r == 1) begin
         count_en_r <= 0;
       end
-
-      // otherwise, remain unchanged
-      else begin
-        count_en_r <= count_en_r;
-      end
     end
   end
 
@@ -65,11 +60,6 @@ module debounce (
         // count up to debounce threshold
         if (count_r < DEBOUNCE_THRESHOLD_C) begin
           count_r <= count_r + 1;
-        end
-
-        // remain IDLE once threshold hit
-        else begin
-          count_r <= count_r;
         end
       end
 
@@ -89,10 +79,6 @@ module debounce (
     else begin
       if (count_r == DEBOUNCE_THRESHOLD_C) begin
         db_btn_r <= synced_raw_btn_r;
-      end
-
-      else begin
-        db_btn_r <= db_btn_r;
       end
     end
   end
